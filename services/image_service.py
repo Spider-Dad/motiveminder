@@ -184,7 +184,7 @@ class ImageService:
                 # Запрашиваем содержимое изображения
                 logger.info(f"Получение изображения с UUID: {image_uuid}")
                 image_url = f"https://gigachat.devices.sberbank.ru/api/v1/files/{image_uuid}/content"
-                image_response = requests.post(
+                image_response = requests.get(
                     image_url,
                     headers=headers,
                     verify=VERIFY_SSL
