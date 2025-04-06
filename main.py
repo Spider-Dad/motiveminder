@@ -1,11 +1,13 @@
 import logging
 import pytz
+import os
 from datetime import datetime
 from services.quotes_service import QuotesService
 from services.translator_service import TranslatorService
+from services.image_service import ImageService
 from bot.telegram_bot import TelegramBot
 from utils.scheduler import Scheduler
-from config.config import TIMEZONE
+from config.config import TIMEZONE, ENABLE_IMAGE_GENERATION
 
 # Настройка логирования
 logging.basicConfig(
@@ -32,9 +34,19 @@ def send_motivational_quote():
     translated_text = TranslatorService.translate(quote.text)
     logger.info(f"Переведенная цитата: {translated_text}")
     
-    # Отправляем цитату в Telegram
+    # Генерируем изображение на основе цитаты (если включено)
+    image_path = None
+    if ENABLE_IMAGE_GENERATION:
+        logger.info("Генерация изображения на основе цитаты...")
+        image_path = ImageService.generate_image_from_quote(translated_text)
+        if image_path:
+            logger.info(f"Изображение успешно создано: {image_path}")
+        else:
+            logger.warning("Не удалось создать изображение для цитаты")
+    
+    # Отправляем цитату с изображением (если есть) в Telegram
     telegram_bot = TelegramBot()
-    result = telegram_bot.send_quote(quote, translated_text)
+    result = telegram_bot.send_quote(quote, translated_text, image_path)
     
     if result:
         logger.info("Цитата успешно отправлена")
@@ -48,6 +60,7 @@ def main():
     try:
         logger.info("Запуск MotivateMe бота")
         logger.info(f"Используемый часовой пояс: {TIMEZONE}")
+        logger.info(f"Генерация изображений: {'включена' if ENABLE_IMAGE_GENERATION else 'отключена'}")
         
         # Создаем планировщик и запускаем его
         scheduler = Scheduler(send_motivational_quote)
