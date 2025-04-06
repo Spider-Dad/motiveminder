@@ -73,6 +73,14 @@ class Scheduler:
         logger.info(f"Следующее выполнение: {self._get_next_run_time()}")
         
         # Запускаем бесконечный цикл для выполнения задач
+        last_log_time = datetime.now()
         while True:
             schedule.run_pending()
+            
+            # Логируем активность каждые 5 минут, чтобы Amvera не считал процесс зависшим
+            now = datetime.now()
+            if (now - last_log_time).total_seconds() > 300:  # 5 минут = 300 секунд
+                logger.info(f"Планировщик активен. Следующее выполнение: {self._get_next_run_time()}")
+                last_log_time = now
+                
             time.sleep(1) 
