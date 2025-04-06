@@ -5,7 +5,9 @@ import logging
 import requests
 import tempfile
 import urllib3
-from config.config import GIGACHAT_API_URL, GIGACHAT_TOKEN, VERIFY_SSL
+import uuid
+from datetime import datetime, timedelta
+from config.config import GIGACHAT_API_KEY, VERIFY_SSL
 
 # Отключаем предупреждения о небезопасных запросах, если проверка SSL отключена
 if not VERIFY_SSL:
@@ -13,7 +15,59 @@ if not VERIFY_SSL:
 
 logger = logging.getLogger(__name__)
 
+# Глобальные переменные для хранения токена
+access_token = None
+token_expiry = None
+
 class ImageService:
+    @staticmethod
+    def get_access_token():
+        """
+        Получает токен доступа к GigaChat API
+        
+        :return: Токен доступа или None в случае ошибки
+        """
+        global access_token, token_expiry
+        
+        # Проверяем, есть ли действующий токен
+        if access_token and token_expiry and datetime.now() < token_expiry:
+            logger.info("Используем существующий токен доступа")
+            return access_token
+            
+        try:
+            rq_uid = str(uuid.uuid4())
+            url = "https://ngw.devices.sberbank.ru:9443/api/v2/oauth"
+            
+            headers = {
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Accept": "application/json",
+                "RqUID": rq_uid,
+                "Authorization": f"Basic {GIGACHAT_API_KEY}"
+            }
+            
+            payload = {
+                "scope": "GIGACHAT_API_PERS"
+            }
+            
+            logger.info("Получение токена доступа к GigaChat API")
+            response = requests.post(url, headers=headers, data=payload, verify=VERIFY_SSL)
+            response.raise_for_status()
+            
+            data = response.json()
+            if 'access_token' in data:
+                access_token = data['access_token']
+                # Устанавливаем срок действия токена на 30 минут
+                token_expiry = datetime.now() + timedelta(minutes=30)
+                logger.info("Токен доступа получен успешно")
+                return access_token
+            else:
+                logger.error("Токен доступа не найден в ответе от GigaChat API")
+                return None
+                
+        except requests.RequestException as e:
+            logger.error(f"Ошибка при получении токена доступа: {e}")
+            return None
+            
     @staticmethod
     def generate_image_from_quote(quote_text):
         """
@@ -23,6 +77,12 @@ class ImageService:
         :return: Путь к временному файлу с изображением или None в случае ошибки
         """
         try:
+            # Получаем токен доступа
+            access_token = ImageService.get_access_token()
+            if not access_token:
+                logger.error("Не удалось получить токен доступа к GigaChat API")
+                return None
+            
             prompt = f"""Создай кинематографичное изображение, которое передает философскую цитату от известных людей, 
             которые знали, как менять реальность: {quote_text}. Визуализация должна быть в мотивирующем биографическом стиле, 
             с фокусом на современный мир. Используй высоко абстрактные формы, такие как свет, тени и цвета для передачи глубокого смысла. 
@@ -33,25 +93,28 @@ class ImageService:
             Используй кинематографичный градиент для цветовой палитры, чтобы передать атмосферу глубины и мотивации."""
             
             # Запрос к GigaChat API для генерации изображения
+            url = "https://gigachat.devices.sberbank.ru/api/v1/chat/completions"
+            
             headers = {
                 "Content-Type": "application/json",
-                "Authorization": f"Bearer {GIGACHAT_TOKEN}"
+                "Accept": "application/json",
+                "Authorization": f"Bearer {access_token}"
             }
             
             payload = {
                 "model": "GigaChat",
                 "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.7,
+                "top_p": 0.1,
+                "n": 1,
+                "stream": False,
+                "max_tokens": 1500,
                 "function_call": "auto"
             }
             
             # Отправляем запрос на генерацию
             logger.info("Отправка запроса на генерацию изображения в GigaChat")
-            response = requests.post(
-                f"{GIGACHAT_API_URL}/chat/completions", 
-                headers=headers, 
-                json=payload,
-                verify=VERIFY_SSL  # Параметр проверки SSL
-            )
+            response = requests.post(url, headers=headers, json=payload, verify=VERIFY_SSL)
             response.raise_for_status()
             
             response_data = response.json()
@@ -73,10 +136,11 @@ class ImageService:
                 
                 # Запрашиваем содержимое изображения
                 logger.info(f"Получение изображения с UUID: {image_uuid}")
+                image_url = f"https://gigachat.devices.sberbank.ru/api/v1/files/{image_uuid}/content"
                 image_response = requests.post(
-                    f"{GIGACHAT_API_URL}/files/{image_uuid}/content",
+                    image_url,
                     headers=headers,
-                    verify=VERIFY_SSL  # Параметр проверки SSL
+                    verify=VERIFY_SSL
                 )
                 image_response.raise_for_status()
                 

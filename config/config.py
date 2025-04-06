@@ -13,8 +13,7 @@ TELEGRAM_CHANNEL_ID = os.getenv('TELEGRAM_CHANNEL_ID')
 MYMEMORY_EMAIL = os.getenv('MYMEMORY_EMAIL')
 
 # Настройки для GigaChat API
-GIGACHAT_API_URL = os.getenv('GIGACHAT_API_URL', 'https://gigachat.devices.sberbank.ru/api/v1')
-GIGACHAT_TOKEN = os.getenv('GIGACHAT_TOKEN')
+GIGACHAT_API_KEY = os.getenv('GIGACHAT_API_KEY')
 ENABLE_IMAGE_GENERATION = os.getenv('ENABLE_IMAGE_GENERATION', 'true').lower() == 'true'
 VERIFY_SSL = os.getenv('VERIFY_SSL', 'true').lower() == 'true'
 
@@ -55,6 +54,6 @@ if not TELEGRAM_CHANNEL_ID:
     raise ValueError("TELEGRAM_CHANNEL_ID not set in environment variables!")
 
 # Проверка настроек GigaChat при включенной генерации изображений
-if ENABLE_IMAGE_GENERATION and not GIGACHAT_TOKEN:
-    print("ВНИМАНИЕ: GIGACHAT_TOKEN не установлен. Генерация изображений будет отключена.")
+if ENABLE_IMAGE_GENERATION and not GIGACHAT_API_KEY:
+    print("ВНИМАНИЕ: GIGACHAT_API_KEY не установлен. Генерация изображений будет отключена.")
     ENABLE_IMAGE_GENERATION = False 
