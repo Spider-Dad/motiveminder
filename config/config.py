@@ -12,6 +12,11 @@ TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 TELEGRAM_CHANNEL_ID = os.getenv('TELEGRAM_CHANNEL_ID')
 MYMEMORY_EMAIL = os.getenv('MYMEMORY_EMAIL')
 
+# Настройки для GigaChat API
+GIGACHAT_API_KEY = os.getenv('GIGACHAT_API_KEY')
+ENABLE_IMAGE_GENERATION = os.getenv('ENABLE_IMAGE_GENERATION', 'true').lower() == 'true'
+VERIFY_SSL = os.getenv('VERIFY_SSL', 'true').lower() == 'true'
+
 # Настройки часового пояса
 TIMEZONE = os.getenv('TIMEZONE', 'Europe/Moscow')
 
@@ -46,4 +51,9 @@ if not TELEGRAM_BOT_TOKEN:
     raise ValueError("TELEGRAM_BOT_TOKEN not set in environment variables!")
 
 if not TELEGRAM_CHANNEL_ID:
-    raise ValueError("TELEGRAM_CHANNEL_ID not set in environment variables!") 
+    raise ValueError("TELEGRAM_CHANNEL_ID not set in environment variables!")
+
+# Проверка настроек GigaChat при включенной генерации изображений
+if ENABLE_IMAGE_GENERATION and not GIGACHAT_API_KEY:
+    print("ВНИМАНИЕ: GIGACHAT_API_KEY не установлен. Генерация изображений будет отключена.")
+    ENABLE_IMAGE_GENERATION = False 
