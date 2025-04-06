@@ -16,6 +16,7 @@ MYMEMORY_EMAIL = os.getenv('MYMEMORY_EMAIL')
 GIGACHAT_API_URL = os.getenv('GIGACHAT_API_URL', 'https://gigachat.devices.sberbank.ru/api/v1')
 GIGACHAT_TOKEN = os.getenv('GIGACHAT_TOKEN')
 ENABLE_IMAGE_GENERATION = os.getenv('ENABLE_IMAGE_GENERATION', 'true').lower() == 'true'
+VERIFY_SSL = os.getenv('VERIFY_SSL', 'true').lower() == 'true'
 
 # Настройки часового пояса
 TIMEZONE = os.getenv('TIMEZONE', 'Europe/Moscow')

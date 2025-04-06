@@ -4,7 +4,12 @@ import json
 import logging
 import requests
 import tempfile
-from config.config import GIGACHAT_API_URL, GIGACHAT_TOKEN
+import urllib3
+from config.config import GIGACHAT_API_URL, GIGACHAT_TOKEN, VERIFY_SSL
+
+# Отключаем предупреждения о небезопасных запросах, если проверка SSL отключена
+if not VERIFY_SSL:
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +49,8 @@ class ImageService:
             response = requests.post(
                 f"{GIGACHAT_API_URL}/chat/completions", 
                 headers=headers, 
-                json=payload
+                json=payload,
+                verify=VERIFY_SSL  # Параметр проверки SSL
             )
             response.raise_for_status()
             
@@ -69,7 +75,8 @@ class ImageService:
                 logger.info(f"Получение изображения с UUID: {image_uuid}")
                 image_response = requests.post(
                     f"{GIGACHAT_API_URL}/files/{image_uuid}/content",
-                    headers=headers
+                    headers=headers,
+                    verify=VERIFY_SSL  # Параметр проверки SSL
                 )
                 image_response.raise_for_status()
                 

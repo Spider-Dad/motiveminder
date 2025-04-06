@@ -7,7 +7,7 @@ from services.translator_service import TranslatorService
 from services.image_service import ImageService
 from bot.telegram_bot import TelegramBot
 from utils.scheduler import Scheduler
-from config.config import TIMEZONE, ENABLE_IMAGE_GENERATION
+from config.config import TIMEZONE, ENABLE_IMAGE_GENERATION, VERIFY_SSL
 
 # Настройка логирования
 logging.basicConfig(
@@ -61,6 +61,7 @@ def main():
         logger.info("Запуск MotivateMe бота")
         logger.info(f"Используемый часовой пояс: {TIMEZONE}")
         logger.info(f"Генерация изображений: {'включена' if ENABLE_IMAGE_GENERATION else 'отключена'}")
+        logger.info(f"Проверка SSL сертификатов: {'включена' if VERIFY_SSL else 'отключена'}")
         
         # Создаем планировщик и запускаем его
         scheduler = Scheduler(send_motivational_quote)
