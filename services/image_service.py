@@ -6,7 +6,9 @@ import requests
 import tempfile
 import urllib3
 import uuid
+import re
 from datetime import datetime, timedelta
+from bs4 import BeautifulSoup
 from config.config import GIGACHAT_API_KEY, VERIFY_SSL
 
 # Отключаем предупреждения о небезопасных запросах, если проверка SSL отключена
@@ -67,6 +69,37 @@ class ImageService:
         except requests.RequestException as e:
             logger.error(f"Ошибка при получении токена доступа: {e}")
             return None
+    
+    @staticmethod
+    def extract_image_uuid(content):
+        """
+        Извлекает UUID изображения из HTML-тега в ответе GigaChat
+        
+        :param content: Текст ответа от GigaChat
+        :return: UUID изображения или None, если не найден
+        """
+        try:
+            # Сначала пробуем использовать Beautiful Soup для парсинга HTML
+            soup = BeautifulSoup(content, 'html.parser')
+            img_tag = soup.find('img')
+            if img_tag and img_tag.has_attr('src'):
+                return img_tag['src']
+                
+            # Если не получилось, используем регулярное выражение как запасной вариант
+            match = re.search(r'<img\s+src="([a-f0-9-]+)"\s+fuse="true"\s*/>', content)
+            if match:
+                return match.group(1)
+                
+            # Ищем UUID в тексте, даже без тега img (на случай нестандартного ответа)
+            uuid_match = re.search(r'([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})', content)
+            if uuid_match:
+                return uuid_match.group(1)
+                
+            logger.warning(f"UUID изображения не найден в ответе: {content}")
+            return None
+        except Exception as e:
+            logger.error(f"Ошибка при извлечении UUID изображения: {e}")
+            return None
             
     @staticmethod
     def generate_image_from_quote(quote_text):
@@ -83,14 +116,13 @@ class ImageService:
                 logger.error("Не удалось получить токен доступа к GigaChat API")
                 return None
             
-            prompt = f"""Создай кинематографичное изображение, которое передает философскую цитату от известных людей, 
-            которые знали, как менять реальность: {quote_text}. Визуализация должна быть в мотивирующем биографическом стиле, 
-            с фокусом на современный мир. Используй высоко абстрактные формы, такие как свет, тени и цвета для передачи глубокого смысла. 
-            Атмосфера должна быть спокойной, медитативной, умиротворяющей, с персонажами в раздумьях или медитации. 
-            Добавь лёгкое движение (например, развевающиеся волосы, туман, мягкие световые переходы), чтобы создать кинематографичный эффект. 
-            Включи символику (светящийся объект, рука, книга) для усиления смысловой нагрузки, 
-            но избегай буквального изображения цитаты или авторов. 
-            Используй кинематографичный градиент для цветовой палитры, чтобы передать атмосферу глубины и мотивации."""
+            # Простое сообщение для генерации изображения
+            simple_prompt = f"Нарисуй изображение, иллюстрирующее цитату: {quote_text}"
+            
+            # Добавляем системное сообщение для стилизации
+            system_message = """Ты — опытный художник, специализирующийся на создании философских 
+            абстрактных визуализаций. Создавай изображения в кинематографичном стиле, используя 
+            свет, тени и цвета для передачи глубокого смысла."""
             
             # Запрос к GigaChat API для генерации изображения
             url = "https://gigachat.devices.sberbank.ru/api/v1/chat/completions"
@@ -103,12 +135,11 @@ class ImageService:
             
             payload = {
                 "model": "GigaChat",
-                "messages": [{"role": "user", "content": prompt}],
-                "temperature": 0.7,
-                "top_p": 0.1,
-                "n": 1,
-                "stream": False,
-                "max_tokens": 1500,
+                "messages": [
+                    {"role": "system", "content": system_message},
+                    {"role": "user", "content": simple_prompt}
+                ],
+                "temperature": 1.0,
                 "function_call": "auto"
             }
             
@@ -118,21 +149,37 @@ class ImageService:
             response.raise_for_status()
             
             response_data = response.json()
+            logger.debug(f"Ответ GigaChat: {response_data}")
             
-            # Проверяем, вызвал ли GigaChat функцию text2image
+            # Проверяем наличие выбора и сообщения
             if (
                 'choices' in response_data and 
                 len(response_data['choices']) > 0 and 
-                'function_call' in response_data['choices'][0]['message'] and
-                response_data['choices'][0]['message']['function_call']['name'] == 'text2image'
+                'message' in response_data['choices'][0] and
+                'content' in response_data['choices'][0]['message']
             ):
-                # Получаем аргументы функции text2image
-                function_args = json.loads(response_data['choices'][0]['message']['function_call']['arguments'])
-                image_uuid = function_args.get('uuid')
+                # Получаем содержимое ответа
+                content = response_data['choices'][0]['message']['content']
+                logger.info(f"Получен ответ от GigaChat: {content}")
+                
+                # Извлекаем UUID изображения из ответа
+                image_uuid = ImageService.extract_image_uuid(content)
                 
                 if not image_uuid:
-                    logger.error("UUID изображения не найден в ответе GigaChat")
-                    return None
+                    # Проверяем, есть ли функция text2image в ответе (как альтернативный вариант)
+                    if 'function_call' in response_data['choices'][0]['message']:
+                        function_call = response_data['choices'][0]['message']['function_call']
+                        if function_call['name'] == 'text2image':
+                            try:
+                                function_args = json.loads(function_call['arguments'])
+                                image_uuid = function_args.get('uuid')
+                                logger.info(f"UUID изображения найден в function_call: {image_uuid}")
+                            except Exception as e:
+                                logger.error(f"Ошибка при разборе аргументов функции: {e}")
+                                return None
+                    else:
+                        logger.error("UUID изображения не найден в ответе GigaChat")
+                        return None
                 
                 # Запрашиваем содержимое изображения
                 logger.info(f"Получение изображения с UUID: {image_uuid}")
@@ -142,7 +189,16 @@ class ImageService:
                     headers=headers,
                     verify=VERIFY_SSL
                 )
-                image_response.raise_for_status()
+                
+                # Проверка статуса ответа
+                if image_response.status_code != 200:
+                    logger.error(f"Ошибка при получении изображения: {image_response.status_code} {image_response.text}")
+                    return None
+                    
+                # Проверка наличия содержимого
+                if not image_response.content:
+                    logger.error("Пустой ответ при получении изображения")
+                    return None
                 
                 # Сохраняем изображение во временный файл
                 temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.jpg')
@@ -152,7 +208,7 @@ class ImageService:
                 logger.info(f"Изображение сохранено во временный файл: {temp_file.name}")
                 return temp_file.name
             else:
-                logger.error("GigaChat не вызвал функцию text2image или вернул неожиданный формат ответа")
+                logger.error("Неожиданный формат ответа от GigaChat API")
                 logger.debug(f"Ответ GigaChat: {response_data}")
                 return None
                 
