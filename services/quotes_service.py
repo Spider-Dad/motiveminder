@@ -27,7 +27,7 @@ class QuotesService:
                 quote_data = data[0]
                 return Quote(
                     text=quote_data.get('q', 'No quote available'),
-                    author=quote_data.get('a', 'Unknown')
+                    author=quote_data.get('a', 'Unknown author')
                 )
             else:
                 logger.error("Unexpected response format from ZenQuotes API")
