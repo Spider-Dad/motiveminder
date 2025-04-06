@@ -124,4 +124,7 @@ dmypy.json
 *.swo
 
 # Project specific
-config/.env 
+config/.env
+
+# Amvera specific
+/data/ 
