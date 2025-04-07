@@ -23,6 +23,21 @@ class Scheduler:
         }
         self._setup_schedule()
         
+    def _convert_to_utc(self, time_str):
+        """
+        Конвертирует локальное время в UTC для правильного планирования
+        
+        :param time_str: Время в формате "HH:MM"
+        :return: Время в UTC в формате "HH:MM"
+        """
+        # Создаем сегодняшнюю дату с указанным временем в локальной временной зоне
+        local_dt = self.timezone.localize(
+            datetime.strptime(f"{datetime.now().strftime('%Y-%m-%d')} {time_str}", "%Y-%m-%d %H:%M")
+        )
+        # Конвертируем в UTC
+        utc_dt = local_dt.astimezone(pytz.UTC)
+        return utc_dt.strftime("%H:%M")
+        
     def _setup_schedule(self):
         """
         Настраивает расписание выполнения задачи по дням недели и времени
@@ -38,31 +53,39 @@ class Scheduler:
                 
             for time_str in times:
                 try:
+                    # Конвертируем время в UTC
+                    utc_time = self._convert_to_utc(time_str)
+                    
                     # Для каждого времени добавляем задачу в расписание
                     if day.lower() == 'monday':
-                        schedule.every().monday.at(time_str).do(self.job_function)
+                        schedule.every().monday.at(utc_time).do(self.job_function)
                     elif day.lower() == 'tuesday':
-                        schedule.every().tuesday.at(time_str).do(self.job_function)
+                        schedule.every().tuesday.at(utc_time).do(self.job_function)
                     elif day.lower() == 'wednesday':
-                        schedule.every().wednesday.at(time_str).do(self.job_function)
+                        schedule.every().wednesday.at(utc_time).do(self.job_function)
                     elif day.lower() == 'thursday':
-                        schedule.every().thursday.at(time_str).do(self.job_function)
+                        schedule.every().thursday.at(utc_time).do(self.job_function)
                     elif day.lower() == 'friday':
-                        schedule.every().friday.at(time_str).do(self.job_function)
+                        schedule.every().friday.at(utc_time).do(self.job_function)
                     elif day.lower() == 'saturday':
-                        schedule.every().saturday.at(time_str).do(self.job_function)
+                        schedule.every().saturday.at(utc_time).do(self.job_function)
                     elif day.lower() == 'sunday':
-                        schedule.every().sunday.at(time_str).do(self.job_function)
+                        schedule.every().sunday.at(utc_time).do(self.job_function)
                         
-                    logger.info(f"Запланирована отправка цитаты в {day} в {time_str}")
+                    logger.info(f"Запланирована отправка цитаты в {day} в {time_str} (UTC: {utc_time})")
                 except Exception as e:
                     logger.error(f"Ошибка при настройке расписания для {day} в {time_str}: {e}")
     
     def _get_next_run_time(self):
-        """Получает следующее время запуска задачи"""
+        """
+        Получает следующее время запуска задачи в локальной временной зоне
+        """
         next_run = schedule.next_run()
         if next_run:
-            return next_run.strftime("%Y-%m-%d %H:%M:%S")
+            # Конвертируем время следующего запуска из UTC в локальную временную зону
+            next_run = pytz.UTC.localize(next_run)
+            local_next_run = next_run.astimezone(self.timezone)
+            return local_next_run.strftime("%Y-%m-%d %H:%M:%S %Z")
         return "не запланировано"
                 
     def start(self):
@@ -77,7 +100,7 @@ class Scheduler:
         while True:
             schedule.run_pending()
             
-            # Логируем активность каждые 5 минут, чтобы Amvera не считал процесс зависшим
+            # Логируем активность каждые 5 минут
             now = datetime.now()
             if (now - last_log_time).total_seconds() > 300:  # 5 минут = 300 секунд
                 logger.info(f"Планировщик активен. Следующее выполнение: {self._get_next_run_time()}")
