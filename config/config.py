@@ -35,9 +35,22 @@ DEFAULT_SCHEDULE = {
 schedule_str = os.getenv('SCHEDULE')
 if schedule_str:
     try:
-        SCHEDULE = json.loads(schedule_str)
-    except json.JSONDecodeError:
-        print("Ошибка в формате JSON расписания. Используется значение по умолчанию.")
+        SCHEDULE = {}
+        # Парсим строку формата day:time1,time2;day:time1,time2
+        for day_schedule in schedule_str.split(';'):
+            if ':' in day_schedule:
+                day, times = day_schedule.split(':')
+                # Преобразуем время из формата HHMM в HH:MM
+                formatted_times = []
+                for time in times.split(','):
+                    if len(time) == 4:
+                        formatted_time = f"{time[:2]}:{time[2:]}"
+                        formatted_times.append(formatted_time)
+                SCHEDULE[day.lower()] = formatted_times
+        if not SCHEDULE:
+            raise ValueError("Empty schedule")
+    except Exception as e:
+        print(f"Ошибка в формате расписания: {e}. Используется значение по умолчанию.")
         SCHEDULE = DEFAULT_SCHEDULE
 else:
     SCHEDULE = DEFAULT_SCHEDULE
