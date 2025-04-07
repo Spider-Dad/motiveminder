@@ -48,6 +48,9 @@ TELEGRAM_BOT_TOKEN=your_telegram_bot_token
 # ID канала для отправки цитат
 TELEGRAM_CHANNEL_ID=@your_channel_id
 
+# ID группы для отправки цитат (опционально)
+TELEGRAM_GROUP_ID=-100your_group_id
+
 # Email для MyMemory API (опционально, для увеличения лимита запросов)
 MYMEMORY_EMAIL=your_email@example.com
 

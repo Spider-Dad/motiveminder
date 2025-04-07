@@ -10,6 +10,7 @@ load_dotenv(dotenv_path=env_path)
 # Получаем настройки из переменных окружения
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 TELEGRAM_CHANNEL_ID = os.getenv('TELEGRAM_CHANNEL_ID')
+TELEGRAM_GROUP_ID = os.getenv('TELEGRAM_GROUP_ID')
 MYMEMORY_EMAIL = os.getenv('MYMEMORY_EMAIL')
 
 # Настройки для GigaChat API
