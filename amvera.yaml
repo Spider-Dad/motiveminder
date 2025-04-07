@@ -1,15 +1,13 @@
----
-version: null
 meta:
   environment: python
   toolchain:
     name: pip
     version: 3.11
+
 build:
   requirementsPath: requirements.txt
+
 run:
-  persistenceMount: /data
-  stdout: true
-  stderr: true
   scriptName: main.py
-  containerPort: 80
+  persistenceMount: /data  
+  containerPort: 80 
