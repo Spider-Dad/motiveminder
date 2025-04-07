@@ -1,16 +1,15 @@
+---
+version: null
 meta:
   environment: python
   toolchain:
     name: pip
-    version: "3.11"
-
+    version: 3.11
 build:
   requirementsPath: requirements.txt
-
 run:
-  command: python main.py
   persistenceMount: /data
-  # Телеграм бот использует polling, а не webhook, поэтому порт не нужен
-  # containerPort: 80  
   stdout: true
-  stderr: true 
+  stderr: true
+  scriptName: main.py
+  containerPort: 80
