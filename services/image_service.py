@@ -9,7 +9,7 @@ import uuid
 import re
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
-from config.config import GIGACHAT_API_KEY, VERIFY_SSL
+from config.config import GIGACHAT_API_KEY, VERIFY_SSL, GIGACHAT_MODEL
 
 # Отключаем предупреждения о небезопасных запросах, если проверка SSL отключена
 if not VERIFY_SSL:
@@ -132,7 +132,7 @@ class ImageService:
             }
             
             payload = {
-                "model": "GigaChat",
+                "model": GIGACHAT_MODEL,
                 "messages": [
                     {"role": "system", "content": system_message},
                     {"role": "user", "content": simple_prompt}
@@ -142,7 +142,7 @@ class ImageService:
             }
             
             # Отправляем запрос на генерацию
-            logger.info("Отправка запроса на генерацию изображения в GigaChat")
+            logger.info(f"Отправка запроса на генерацию изображения в GigaChat (модель: {GIGACHAT_MODEL})")
             response = requests.post(url, headers=headers, json=payload, verify=VERIFY_SSL)
             response.raise_for_status()
             
