@@ -175,8 +175,44 @@ class ImageService:
                             except Exception as e:
                                 logger.error(f"Ошибка при разборе аргументов функции: {e}")
                                 return None
-                    else:
-                        logger.error("UUID изображения не найден в ответе GigaChat")
+                    
+                    # Если UUID все еще не найден и используется не стандартная модель,
+                    # пробуем повторно с моделью по умолчанию
+                    if not image_uuid and GIGACHAT_MODEL != 'GigaChat':
+                        logger.warning(f"UUID изображения не найден при использовании модели {GIGACHAT_MODEL}. Пробуем с моделью GigaChat")
+                        
+                        # Изменяем модель в payload на GigaChat
+                        payload['model'] = 'GigaChat'
+                        
+                        # Повторяем запрос
+                        logger.info("Отправка повторного запроса на генерацию изображения с моделью GigaChat")
+                        response = requests.post(url, headers=headers, json=payload, verify=VERIFY_SSL)
+                        response.raise_for_status()
+                        
+                        response_data = response.json()
+                        if (
+                            'choices' in response_data and 
+                            len(response_data['choices']) > 0 and 
+                            'message' in response_data['choices'][0] and
+                            'content' in response_data['choices'][0]['message']
+                        ):
+                            content = response_data['choices'][0]['message']['content']
+                            logger.info(f"Получен ответ от GigaChat (повторная попытка): {content}")
+                            image_uuid = ImageService.extract_image_uuid(content)
+                            
+                            if not image_uuid and 'function_call' in response_data['choices'][0]['message']:
+                                function_call = response_data['choices'][0]['message']['function_call']
+                                if function_call['name'] == 'text2image':
+                                    try:
+                                        function_args = json.loads(function_call['arguments'])
+                                        image_uuid = function_args.get('uuid')
+                                        logger.info(f"UUID изображения найден в function_call (повторная попытка): {image_uuid}")
+                                    except Exception as e:
+                                        logger.error(f"Ошибка при разборе аргументов функции (повторная попытка): {e}")
+                                        return None
+                    
+                    if not image_uuid:
+                        logger.error("UUID изображения не найден в ответе GigaChat после всех попыток")
                         return None
                 
                 # Запрашиваем содержимое изображения
