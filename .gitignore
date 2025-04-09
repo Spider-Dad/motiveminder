@@ -44,6 +44,10 @@ coverage.xml
 *.cover
 .hypothesis/
 .pytest_cache/
+junit.xml
+report.xml
+test-results/
+.test_report/
 
 # Translations
 *.mo
@@ -125,6 +129,8 @@ dmypy.json
 
 # Project specific
 config/.env
+test_output/
+.pytest_report/
 
 # Amvera specific
 /data/ 
