@@ -11,6 +11,19 @@ jobs:
   test:
     runs-on: ubuntu-latest
     
+    # Добавляем фиктивные переменные окружения для тестов
+    env:
+      TELEGRAM_BOT_TOKEN: "test_token"
+      TELEGRAM_CHANNEL_ID: "test_channel"
+      TELEGRAM_GROUP_ID: "test_group"
+      MYMEMORY_EMAIL: "test@example.com"
+      GIGACHAT_API_KEY: "test_api_key"
+      GIGACHAT_MODEL: "GigaChat"
+      ENABLE_IMAGE_GENERATION: "true"
+      VERIFY_SSL: "false"
+      TIMEZONE: "Europe/Moscow"
+      SCHEDULE: "monday:0900,1200,1500,1800,2100;tuesday:0900,1200,1500,1800,2100"
+    
     steps:
     - uses: actions/checkout@v4
     
