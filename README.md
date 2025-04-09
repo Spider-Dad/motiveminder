@@ -1,5 +1,7 @@
 # MotiveMinder Bot 🚀
 
+[![Python Tests](https://github.com/Spider-Dad/motiveminder/actions/workflows/python-tests.yml/badge.svg)](https://github.com/Spider-Dad/motiveminder/actions/workflows/python-tests.yml)
+
 Telegram-бот, который автоматически отправляет мотивационные цитаты в канал по расписанию. Бот получает случайные цитаты из внешнего API (ZenQuotes), переводит их на русский язык с помощью MyMemory API и отправляет в Telegram-канал через Telegram Bot API.
 
 > **Проект основан на [telegram-quotes-bot-](https://github.com/che1nov/telegram-quotes-bot-) от [@che1nov](https://github.com/che1nov)**. Выражаю искреннюю благодарность автору за отличную идею и реализацию!
