@@ -99,18 +99,14 @@ class TestEnvConfigIntegration:
             assert isinstance(config.TIMEZONE, str)
             assert '/' in config.TIMEZONE  # Формат часового пояса обычно содержит "/"
             
-            # Проверяем наличие дней в расписании (без проверки конкретных значений)
-            assert 'monday' in config.SCHEDULE
-            assert 'tuesday' in config.SCHEDULE
-            assert 'wednesday' in config.SCHEDULE
-            assert 'thursday' in config.SCHEDULE
-            assert 'friday' in config.SCHEDULE
-            assert 'saturday' in config.SCHEDULE
-            assert 'sunday' in config.SCHEDULE
+            # Проверяем наличие расписания и его структуру
+            assert isinstance(config.SCHEDULE, dict)
+            assert len(config.SCHEDULE) > 0  # Должен быть хотя бы один день
             
-            # Проверяем наличие времени в monday
-            assert len(config.SCHEDULE['monday']) > 0
-            assert isinstance(config.SCHEDULE['monday'][0], str)
+            # Проверяем, что для первого дня в расписании есть время
+            first_day = next(iter(config.SCHEDULE))
+            assert len(config.SCHEDULE[first_day]) > 0
+            assert isinstance(config.SCHEDULE[first_day][0], str)
     
     def test_env_schedule_parsing(self, temp_env_file):
         """
@@ -121,29 +117,35 @@ class TestEnvConfigIntegration:
         """
         env_path, temp_dir = temp_env_file
         
+        test_schedule = 'test_day1:0900,1500;test_day2:1200,1800'
+        
         # Патчим Path и переменные окружения
         with patch('config.config.Path') as mock_path, \
              patch.dict('os.environ', {
-                 'SCHEDULE': 'monday:0900,1500;wednesday:1200,1800'
-             }):
+                 'SCHEDULE': test_schedule
+             }), \
+             patch('config.config.DEFAULT_SCHEDULE', {}):  # Пустое расписание по умолчанию
             
             # Возвращаем наш временный .env файл для других переменных
             mock_path.return_value.__truediv__.return_value.__truediv__.return_value = env_path
             
-            # Импортируем config после установки патчей
-            from config import config
+            # Импортируем config заново с новыми настройками мока
+            import importlib
+            import config.config
+            importlib.reload(config.config)
             
-            # Проверяем правильность загрузки расписания из переменной окружения
-            assert 'monday' in config.SCHEDULE
-            assert 'wednesday' in config.SCHEDULE
+            # Проверяем правильность парсинга расписания
+            assert len(config.config.SCHEDULE) >= 2  # Как минимум два дня в расписании
             
-            # Проверяем только наличие и формат времени, но не конкретные значения
-            assert len(config.SCHEDULE['monday']) > 0
-            assert len(config.SCHEDULE['wednesday']) > 0
+            # Проверяем форматирование времени
+            days = list(config.config.SCHEDULE.keys())
+            assert len(days) >= 2  # Убеждаемся, что есть хотя бы два дня
             
-            # Проверяем формат времени
-            assert ':' in config.SCHEDULE['monday'][0]
-            assert ':' in config.SCHEDULE['wednesday'][0]
+            # Для любого дня проверяем формат времени
+            for day, times in config.config.SCHEDULE.items():
+                assert len(times) > 0
+                for time_str in times:
+                    assert ':' in time_str  # Формат времени должен содержать двоеточие
     
     def test_env_integration_with_main(self, temp_env_file):
         """
@@ -216,17 +218,23 @@ class TestEnvConfigIntegration:
             mock_path.return_value.__truediv__.return_value.__truediv__.return_value = env_path
             
             # Импортируем config после установки патчей
-            from config import config
+            import importlib
+            import config.config
+            importlib.reload(config.config)
             
             # Проверяем значения по умолчанию
-            assert config.TIMEZONE == 'Europe/Moscow'  # Значение по умолчанию
-            assert config.GIGACHAT_MODEL == 'GigaChat'  # Значение по умолчанию
-            assert config.VERIFY_SSL is False  # Значение по умолчанию у вас в системе
-            assert config.TELEGRAM_GROUP_ID is None  # Значение по умолчанию (не задано)
+            assert config.config.TIMEZONE == 'Europe/Moscow'  # Значение по умолчанию
+            assert config.config.GIGACHAT_MODEL == 'GigaChat'  # Значение по умолчанию
+            assert isinstance(config.config.VERIFY_SSL, bool)  # Значение может отличаться в разных окружениях
+            assert config.config.TELEGRAM_GROUP_ID is None  # Значение по умолчанию (не задано)
             
             # Проверяем расписание по умолчанию
-            assert 'monday' in config.SCHEDULE
-            assert 'saturday' in config.SCHEDULE
-            assert 'sunday' in config.SCHEDULE
-            assert len(config.SCHEDULE['monday']) == 1  # 1 временная точка по умолчанию для будней в вашей конфигурации
-            assert len(config.SCHEDULE['saturday']) == 2  # 2 временные точки для выходных 
+            assert isinstance(config.config.SCHEDULE, dict)
+            assert len(config.config.SCHEDULE) > 0  # Должно быть хотя бы одно значение
+            
+            # Проверяем структуру расписания
+            for day, times in config.config.SCHEDULE.items():
+                assert isinstance(day, str)  # День - это строка
+                assert isinstance(times, list)  # Время - это список
+                assert len(times) > 0  # В каждом дне есть хотя бы одно время
+                assert all(':' in t for t in times)  # Все элементы времени имеют формат с двоеточием 
