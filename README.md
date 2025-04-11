@@ -109,8 +109,20 @@ pytest --cov=.         # Тесты с отчетом о покрытии код
 
 Виды тестов:
 - **Юнит-тесты**: тестирование отдельных компонентов
+  - `test_image_service.py` - тесты сервиса генерации изображений
+  - `test_quotes_service.py` - тесты сервиса получения цитат
+  - `test_scheduler.py` - тесты планировщика задач
+  - `test_telegram_bot.py` - тесты Telegram бота
+  - `test_translator_service.py` - тесты сервиса перевода
+
 - **Интеграционные тесты**: тестирование взаимодействия между компонентами
-- **Тесты конфигурации**: проверка корректности загрузки и обработки настроек
+  - `test_integration.py` - общие интеграционные тесты
+  - `test_config_integration.py` - тесты интеграции конфигурации
+  - `test_env_config_integration.py` - тесты интеграции переменных окружения
+  - `test_main_integration.py` - тесты интеграции основного модуля
+  - `test_scheduler_integration.py` - тесты интеграции планировщика
+
+Общее покрытие кода тестами составляет более 90%
 
 ## Генерация изображений
 
@@ -129,8 +141,6 @@ pytest --cov=.         # Тесты с отчетом о покрытии код
 3. Amvera автоматически определит файл `amvera.yaml` и настроит проект
 4. Добавьте переменные окружения в настройках проекта Amvera (те же, что и в файле `.env`)
 5. Запустите приложение
-
-**Важно:** Все данные, которые должны сохраняться между перезапусками, должны храниться в директории `/data`, которая указана в `persistenceMount` в файле `amvera.yaml`.
 
 ## Структура проекта
 
@@ -151,12 +161,16 @@ MotiveMinder/
 ├── tests/
 │   ├── __init__.py
 │   ├── conftest.py          # Общие фикстуры для тестов
-│   ├── test_config_integration.py    # Тесты конфигурации
-│   ├── test_integration.py  # Интеграционные тесты
+│   ├── test_config_integration.py    # Тесты интеграции конфигурации
+│   ├── test_env_config_integration.py # Тесты интеграции переменных окружения
+│   ├── test_integration.py  # Общие интеграционные тесты
+│   ├── test_main_integration.py # Тесты интеграции основного модуля
+│   ├── test_scheduler_integration.py # Тесты интеграции планировщика
 │   ├── test_image_service.py # Тесты сервиса изображений
 │   ├── test_quotes_service.py # Тесты сервиса цитат
 │   ├── test_scheduler.py    # Тесты планировщика
-│   └── test_telegram_bot.py # Тесты Telegram бота
+│   ├── test_telegram_bot.py # Тесты Telegram бота
+│   └── test_translator_service.py # Тесты сервиса перевода
 ├── utils/
 │   ├── __init__.py
 │   └── scheduler.py         # Планировщик задач
