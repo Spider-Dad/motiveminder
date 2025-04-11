@@ -15,7 +15,7 @@ MYMEMORY_EMAIL = os.getenv('MYMEMORY_EMAIL')
 
 # Настройки для GigaChat API
 GIGACHAT_API_KEY = os.getenv('GIGACHAT_API_KEY')
-GIGACHAT_MODEL = os.getenv('GIGACHAT_MODEL', 'GigaChat')
+GIGACHAT_MODEL = os.getenv('GIGACHAT_MODEL', 'GigaChat-Max')
 ENABLE_IMAGE_GENERATION = os.getenv('ENABLE_IMAGE_GENERATION', 'true').lower() == 'true'
 VERIFY_SSL = os.getenv('VERIFY_SSL', 'true').lower() == 'true'
 
