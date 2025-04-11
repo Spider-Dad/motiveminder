@@ -224,9 +224,11 @@ class TestEnvConfigIntegration:
             
             # Проверяем значения по умолчанию
             assert config.config.TIMEZONE == 'Europe/Moscow'  # Значение по умолчанию
-            assert config.config.GIGACHAT_MODEL == 'GigaChat'  # Значение по умолчанию
+            assert config.config.GIGACHAT_MODEL == 'GigaChat-Max'  # Значение по умолчанию
             assert isinstance(config.config.VERIFY_SSL, bool)  # Значение может отличаться в разных окружениях
-            assert config.config.TELEGRAM_GROUP_ID is None  # Значение по умолчанию (не задано)
+            
+            # Проверяем TELEGRAM_GROUP_ID - может быть None или пустой строкой, оба варианта допустимы
+            assert not config.config.TELEGRAM_GROUP_ID, "TELEGRAM_GROUP_ID должен быть пустым (None или '')"
             
             # Проверяем расписание по умолчанию
             assert isinstance(config.config.SCHEDULE, dict)

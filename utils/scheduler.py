@@ -53,26 +53,36 @@ class Scheduler:
                 
             for time_str in times:
                 try:
-                    # Конвертируем время в UTC
+                    # Сначала конвертируем время из настройки в UTC
                     utc_time = self._convert_to_utc(time_str)
                     
-                    # Для каждого времени добавляем задачу в расписание
+                    # Теперь получаем локальное системное время, соответствующее этому UTC времени
+                    # Это нужно, потому что schedule воспринимает время как локальное системное
+                    utc_dt = datetime.strptime(f"{datetime.now().strftime('%Y-%m-%d')} {utc_time}", "%Y-%m-%d %H:%M")
+                    utc_dt = pytz.UTC.localize(utc_dt)
+                    
+                    # Конвертируем UTC время в локальное системное
+                    system_local_dt = utc_dt.astimezone(datetime.now().astimezone().tzinfo)
+                    system_time = system_local_dt.strftime("%H:%M")
+                    
+                    # Для каждого времени добавляем задачу в расписание,
+                    # используя время, соответствующее локальному системному времени
                     if day.lower() == 'monday':
-                        schedule.every().monday.at(utc_time).do(self.job_function)
+                        schedule.every().monday.at(system_time).do(self.job_function)
                     elif day.lower() == 'tuesday':
-                        schedule.every().tuesday.at(utc_time).do(self.job_function)
+                        schedule.every().tuesday.at(system_time).do(self.job_function)
                     elif day.lower() == 'wednesday':
-                        schedule.every().wednesday.at(utc_time).do(self.job_function)
+                        schedule.every().wednesday.at(system_time).do(self.job_function)
                     elif day.lower() == 'thursday':
-                        schedule.every().thursday.at(utc_time).do(self.job_function)
+                        schedule.every().thursday.at(system_time).do(self.job_function)
                     elif day.lower() == 'friday':
-                        schedule.every().friday.at(utc_time).do(self.job_function)
+                        schedule.every().friday.at(system_time).do(self.job_function)
                     elif day.lower() == 'saturday':
-                        schedule.every().saturday.at(utc_time).do(self.job_function)
+                        schedule.every().saturday.at(system_time).do(self.job_function)
                     elif day.lower() == 'sunday':
-                        schedule.every().sunday.at(utc_time).do(self.job_function)
+                        schedule.every().sunday.at(system_time).do(self.job_function)
                         
-                    logger.info(f"Запланирована отправка цитаты в {day} в {time_str} (UTC: {utc_time})")
+                    logger.info(f"Запланирована отправка цитаты в {day} в {time_str} (UTC: {utc_time}, Системное: {system_time})")
                 except Exception as e:
                     logger.error(f"Ошибка при настройке расписания для {day} в {time_str}: {e}")
     
@@ -82,9 +92,24 @@ class Scheduler:
         """
         next_run = schedule.next_run()
         if next_run:
-            # Конвертируем время следующего запуска из UTC в локальную временную зону
-            next_run = pytz.UTC.localize(next_run)
-            local_next_run = next_run.astimezone(self.timezone)
+            # next_run возвращается как naive datetime в системном часовом поясе
+            # Нам нужно преобразовать его в aware datetime в целевом часовом поясе
+            
+            # 1. Преобразуем в aware datetime в системном часовом поясе
+            # Получаем текущее время как aware datetime, чтобы определить системный часовой пояс
+            now = datetime.now().astimezone()
+            system_tz = now.tzinfo
+            
+            # Создаем aware datetime с системным часовым поясом
+            next_run_system = datetime(
+                next_run.year, next_run.month, next_run.day,
+                next_run.hour, next_run.minute, next_run.second,
+                tzinfo=system_tz
+            )
+            
+            # 2. Преобразуем в целевой часовой пояс (TIMEZONE)
+            local_next_run = next_run_system.astimezone(self.timezone)
+            
             return local_next_run.strftime("%Y-%m-%d %H:%M:%S %Z")
         return "не запланировано"
                 
