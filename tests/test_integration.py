@@ -141,7 +141,9 @@ class TestQuoteToTelegramFlow:
         Проверяем, что цитата с переводом и сгенерированным изображением может быть
         отправлена через TelegramBot
         """
-        with patch('bot.telegram_bot.telegram.Bot') as mock_bot_class:
+        with patch('bot.telegram_bot.telegram.Bot') as mock_bot_class, \
+             patch('bot.telegram_bot.TELEGRAM_CHANNEL_ID', 'test_channel'), \
+             patch('bot.telegram_bot.TELEGRAM_GROUP_ID', 'test_group'):
             # Создаем мок для экземпляра бота
             mock_bot = Mock()
             mock_bot_class.return_value = mock_bot
@@ -156,9 +158,23 @@ class TestQuoteToTelegramFlow:
             assert result is True
             
             # Проверяем, что вызов send_photo был выполнен с правильными параметрами
-            mock_bot.send_photo.assert_called_once()
-            args, kwargs = mock_bot.send_photo.call_args
-            assert kwargs['chat_id'] is not None
+            # Так как у нас настроены и канал, и группа, метод должен быть вызван дважды
+            assert mock_bot.send_photo.call_count == 2
+            
+            # Проверяем параметры для обоих вызовов
+            calls = mock_bot.send_photo.call_args_list
+            
+            # Проверяем первый вызов (для канала)
+            args, kwargs = calls[0]
+            assert kwargs['chat_id'] == 'test_channel'
+            assert kwargs['caption'] is not None
+            assert translated_text in kwargs['caption']
+            assert mock_quote.text in kwargs['caption']
+            assert mock_quote.author in kwargs['caption']
+            
+            # Проверяем второй вызов (для группы)
+            args, kwargs = calls[1]
+            assert kwargs['chat_id'] == 'test_group'
             assert kwargs['caption'] is not None
             assert translated_text in kwargs['caption']
             assert mock_quote.text in kwargs['caption']
@@ -176,7 +192,9 @@ class TestQuoteToTelegramFlow:
              patch.object(TranslatorService, 'translate', return_value=translated_text), \
              patch.object(ImageService, 'generate_image_from_quote', return_value=temp_image_file), \
              patch('bot.telegram_bot.telegram.Bot') as mock_bot_class, \
-             patch('main.ENABLE_IMAGE_GENERATION', True):
+             patch('main.ENABLE_IMAGE_GENERATION', True), \
+             patch('bot.telegram_bot.TELEGRAM_CHANNEL_ID', 'test_channel'), \
+             patch('bot.telegram_bot.TELEGRAM_GROUP_ID', 'test_group'):
             
             # Создаем мок для экземпляра бота
             mock_bot = Mock()
@@ -189,4 +207,20 @@ class TestQuoteToTelegramFlow:
             send_motivational_quote()
             
             # Проверяем, что все ожидаемые методы были вызваны
-            mock_bot.send_photo.assert_called_once() 
+            # Так как настроены и канал, и группа, метод должен быть вызван дважды
+            assert mock_bot.send_photo.call_count == 2
+            
+            # Проверяем параметры для обоих вызовов
+            calls = mock_bot.send_photo.call_args_list
+            
+            # Проверяем вызовы для канала и группы
+            channels = set()
+            for call in calls:
+                args, kwargs = call
+                channels.add(kwargs['chat_id'])
+                assert kwargs['caption'] is not None
+                assert mock_quote.text in kwargs['caption'] or translated_text in kwargs['caption']
+            
+            # Проверяем, что отправка была в оба чата
+            assert 'test_channel' in channels
+            assert 'test_group' in channels 
